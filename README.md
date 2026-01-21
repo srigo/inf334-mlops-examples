@@ -15,7 +15,7 @@ inf334-mlops/
 │   └── src/
 │       ├── train.py         # Training script (loads data, trains model, logs to MLflow)
 │       └── api.py           # FastAPI app (loads model from MLflow, serves predictions)
-└── students/                # Directory for student exercises (if applicable)
+
 ```
 
 ## How to Run
