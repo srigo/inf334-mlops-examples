@@ -1,0 +1,29 @@
+services:
+  mlflow-server:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: mlflow-server
+    ports:
+      - "5000:5000"
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=sqlite:////mlruns/mlflow.db
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=/mlruns
+    volumes:
+      - ./mlruns:/mlruns
+    command: mlflow server --backend-store-uri sqlite:////mlruns/mlflow.db --default-artifact-root /mlruns --host 0.0.0.0
+
+  app-service:
+    build:
+      context: ./cred_analysis_app
+    container_name: app-service
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount mlruns to the SAME path to ensure the API can read artifacts locally
+      - ./mlruns:/mlruns
+      # Mount the data directory to persist production logs
+      - ./cred_analysis_app/data:/app/data
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow-server:5000
+    depends_on:
+      - mlflow-server
+    command: uvicorn src.api:app --host 0.0.0.0 --port 8000
