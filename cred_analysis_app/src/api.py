@@ -51,7 +51,7 @@ class CreditApplication(BaseModel):
     foreign_worker: Optional[str]
 
     class Config:
-        extra = "allow" # Allow extra fields if dataset changes
+        extra = "allow" 
 
 @app.on_event("startup")
 def load_model():
@@ -109,6 +109,10 @@ def predict(application: CreditApplication):
         # Log data
         log_prediction(input_data, result)
         
-        return {"risk_prediction": result, "class": "Bad Risk" if result == 1 else "Good Risk"}
+        # 1 = Good, 0 = Bad (per user instruction/dataset standard)
+        return {
+            "risk_prediction": result, 
+            "class": "Good Risk" if result == 1 else "Bad Risk"
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")

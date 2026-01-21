@@ -1,9 +1,9 @@
 services:
   mlflow-server:
-    image: ghcr.io/mlflow/mlflow:latest
+    image: ghcr.io/mlflow/mlflow:v2.12.2
     container_name: mlflow-server
     ports:
-      - "5000:5000"
+      - "5001:5000"
     environment:
       - MLFLOW_BACKEND_STORE_URI=sqlite:////mlruns/mlflow.db
       - MLFLOW_DEFAULT_ARTIFACT_ROOT=/mlruns
@@ -16,7 +16,7 @@ services:
       context: ./cred_analysis_app
     container_name: app-service
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       # Mount mlruns to the SAME path to ensure the API can read artifacts locally
       - ./mlruns:/mlruns

@@ -8,7 +8,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from sklearn.datasets import fetch_openml
+
 
 # --- Configuration ---
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
@@ -16,17 +16,52 @@ EXPERIMENT_NAME = "credit-risk-classification"
 DATA_PATH = "data/german_credit_data.csv"
 
 def load_data():
-    if os.path.exists(DATA_PATH):
-        print(f"Loading data from {DATA_PATH}...")
-        df = pd.read_csv(DATA_PATH)
-    else:
-        print("Downloading data from OpenML (credit-g)...")
-        # version 1 is usually the standard 'German Credit'
-        data = fetch_openml(name='credit-g', version=1, as_frame=True)
-        df = data.frame
-        # Save for future use
-        os.makedirs("data", exist_ok=True)
-        df.to_csv(DATA_PATH, index=False)
+    if not os.path.exists(DATA_PATH):
+        raise FileNotFoundError(f"Data file not found at {DATA_PATH}. Please ensure german_credit_data.csv is present.")
+
+    print(f"Loading data from {DATA_PATH}...")
+    df = pd.read_csv(DATA_PATH)
+    
+    # German to English mapping
+    column_mapping = {
+        'laufkont': 'checking_status',
+        'laufzeit': 'duration',
+        'moral': 'credit_history',
+        'verw': 'purpose',
+        'hoehe': 'credit_amount',
+        'sparkont': 'savings_status',
+        'beszeit': 'employment',
+        'rate': 'installment_commitment',
+        'famges': 'personal_status',
+        'buerge': 'other_parties',
+        'wohnzeit': 'residence_since',
+        'verm': 'property_magnitude',
+        'alter': 'age',
+        'weitkred': 'other_payment_plans',
+        'wohn': 'housing',
+        'bishkred': 'existing_credits',
+        'beruf': 'job',
+        'pers': 'num_dependents',
+        'telef': 'own_telephone',
+        'gastarb': 'foreign_worker',
+        'kredit': 'class'
+    }
+    
+    # Rename columns
+    df = df.rename(columns=column_mapping)
+    
+    # Explicitly cast categorical columns to string to ensure OneHotEncoder treats them as categories
+    # even if they are encoded as integers in the source CSV.
+    categorical_cols_to_cast = [
+        'checking_status', 'credit_history', 'purpose', 'savings_status', 
+        'employment', 'personal_status', 'other_parties', 'property_magnitude',
+        'other_payment_plans', 'housing', 'job', 'own_telephone', 'foreign_worker'
+    ]
+    
+    for col in categorical_cols_to_cast:
+        if col in df.columns:
+            df[col] = df[col].astype(str)
+            
     return df
 
 def main():
@@ -43,10 +78,13 @@ def main():
     X = df.drop(columns=[target_col])
     y = df[target_col]
 
-    # Map target to 0/1 if necessary (RandomForest handles strings but metrics might need int)
-    # usually 'good' -> 0, 'bad' -> 1 (Risk Class) or vice versa.
-    # Let's map 'bad' -> 1 (Risk), 'good' -> 0 (Safe)
-    y = y.map({'good': 0, 'bad': 1})
+    # Target in german_credit_data.csv is 'class' (mapped from 'kredit'), already 0/1.
+    # We will keep it as is. 
+    # Typically in this dataset: 1 = Good, 0 = Bad (or sometimes 1/2). 
+    # Let's inspect unique values if needed, but assuming 0/1 from user context.
+    # If the CSV has 1 and 2 (common in Statlog), we might need to map. 
+    # But user said "1=Good, 0=Bad". We trust the user/CSV.
+    pass
 
     # Identify categorical and numerical columns
     categorical_cols = X.select_dtypes(include=['object', 'category']).columns.tolist()
